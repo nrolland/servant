@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -37,6 +38,8 @@ import           Network.HTTP.Media
 import qualified Network.HTTP.Types         as H
 import qualified Network.HTTP.Types.Header  as HTTP
 import           Servant.API
+import           Servant.API.Redirect
+import           Servant.Utils.Links        (IsMethod)
 import           Servant.Common.BaseUrl
 import           Servant.Common.Req
 
@@ -669,3 +672,16 @@ instance (KnownSymbol path, HasClient sublayout) => HasClient (path :> sublayout
 
     where p = symbolVal (Proxy :: Proxy path)
 
+instance HasClient (Redirect code method link api) where
+  type Client (Redirect code method link api) = Client link
+  clientWithRoute Proxy req baseurl = do
+    _ <- performRequest (methodOf pmet) req (== status) baseurl
+    clientWithRoute plink req baseurl
+    where pmet   = Proxy :: Proxy (IsMethod link)
+          status = fromInteger $ natVal (Proxy :: Proxy code)
+          plink  = Proxy :: Proxy link
+
+  {-(MimeUnrender ct a, cts' ~ (ct ': cts)) => HasClient (Delete cts' a) where-}
+  {-type Client (Delete cts' a) = EitherT ServantError IO a-}
+  {-clientWithRoute Proxy req baseurl =-}
+    {-snd <$> performRequestCT (Proxy :: Proxy ct) H.methodDelete req [200, 202] baseurl-}

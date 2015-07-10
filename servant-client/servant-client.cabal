@@ -28,8 +28,6 @@ library
     Servant.Client
     Servant.Common.BaseUrl
     Servant.Common.Req
-    Servant.Internal.Class
-    Servant.Internal.Redirect
   build-depends:
       base >=4.7 && <5
     , aeson
