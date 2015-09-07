@@ -779,7 +779,7 @@ errorRoutingBodyParseErrorSpec =
     go :: Server ErrorRoutingBodyParseError -> String -> String -> ResponseMatcher -> Spec
     go hs path body resp = with (return $ serve (Proxy :: Proxy ErrorRoutingBodyParseError) hs) $
       it (show (path, body)) $
-        Test.Hspec.Wai.post (cs path) (cs body) `shouldRespondWith` resp
+        Test.Hspec.Wai.request methodPost (cs path) ["Content-Type", "application/json"] (cs body) `shouldRespondWith` resp
 
 
 type ErrorRouting405
