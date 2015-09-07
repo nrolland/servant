@@ -94,7 +94,6 @@ spec = do
   errorsSpec
   responseHeadersSpec
   miscReqCombinatorsSpec
-  errorRoutingUser404Spec
   errorRoutingBodyParseErrorSpec
   errorRouting405
 
@@ -738,38 +737,23 @@ type ErrorRoutingUser404
   :<|> "deux" :> Get '[JSON] Int
   :<|>           Get '[JSON] Int
 
-errorRoutingUser404Spec :: Spec
-errorRoutingUser404Spec =
-  describe "Handlers can trigger re-routing by responding with error status 404" $ do
-    describe "happy handlers" $ do
-      let hs = return 1 :<|> return 2 :<|> return 3
-      go hs "/un"   "1"
-      go hs "/deux" "2"
-      go hs "/"     "3"
-      go hs "/n/a"  404
-    describe "re-route from /un handler" $ do
-      let hs = left err404 :<|> return 2 :<|> return 3
-      go hs "/un"   "2"
-      go hs "/deux" "2"
-      go hs "/"     "3"
-      go hs "/n/a"  404
-  where
-    go :: Server ErrorRoutingUser404 -> String -> ResponseMatcher -> Spec
-    go hs path resp = with (return $ serve (Proxy :: Proxy ErrorRoutingUser404) hs) $
-      it path $ Test.Hspec.Wai.get (cs path) `shouldRespondWith` resp
 
 
 type ErrorRoutingBodyParseError
   =    "sum" :> ReqBody '[JSON] [Int] :> Post '[JSON] Int
+  :<|> "sum" :> ReqBody '[JSON] String :> Post '[JSON] Int
   :<|> "const"                        :> Post '[JSON] Int
   :<|> Raw
 
 errorRoutingBodyParseErrorSpec :: Spec
 errorRoutingBodyParseErrorSpec =
   describe "Broken request body triggers error response (not re-routing)" $ do
-    let hs = (return . sum) :<|> return 2 :<|> (\_ cont -> cont (responseLBS ok200 [] "Raw"))
+    let hs = (return . sum)
+         :<|> error "should never be called"
+         :<|> return 2
+         :<|> (\_ cont -> cont (responseLBS ok200 [] "Raw"))
     describe "happy handlers" $ do
-      go hs "/sum"   "[1, 2]" "3"
+      go hs "/sum"   "[1, 2]" ("3" { matchStatus = 201 })
       go hs "/const" ""       ("2" { matchStatus = 201 })
       go hs "/n/a"   ""       "Raw"
     describe "parse error" $ do
@@ -779,7 +763,7 @@ errorRoutingBodyParseErrorSpec =
     go :: Server ErrorRoutingBodyParseError -> String -> String -> ResponseMatcher -> Spec
     go hs path body resp = with (return $ serve (Proxy :: Proxy ErrorRoutingBodyParseError) hs) $
       it (show (path, body)) $
-        Test.Hspec.Wai.request methodPost (cs path) ["Content-Type", "application/json"] (cs body) `shouldRespondWith` resp
+        Test.Hspec.Wai.request methodPost (cs path) [("Content-Type", "application/json")] (cs body) `shouldRespondWith` resp
 
 
 type ErrorRouting405

@@ -25,11 +25,13 @@ tested-with:         GHC >= 7.8
 extra-source-files:
   CHANGELOG.md
   README.md
+  test/Servant/ServerSpec.hs
+  test/Servant/Utils/StaticFilesSpec.hs
+  test/Servant/Server/Internal/EnterSpec.hs
 bug-reports:         http://github.com/haskell-servant/servant/issues
 source-repository head
   type: git
   location: http://github.com/haskell-servant/servant.git
-
 
 library
   exposed-modules:

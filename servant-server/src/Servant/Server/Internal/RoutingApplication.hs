@@ -56,7 +56,6 @@ data RouteMismatch =
   | HttpError Status (Maybe BL.ByteString)  -- ^ an even even more informative arbitrary HTTP response code error.
   deriving (Eq, Ord, Show)
 
-
 instance Monoid RouteMismatch where
   mempty = NotFound
   -- The following isn't great, since it picks @InvalidBody@ based on
