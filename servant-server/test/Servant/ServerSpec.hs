@@ -393,6 +393,7 @@ postSpec = do
 type PutApi =
        ReqBody '[JSON] Person :> Put '[JSON] Integer
   :<|> "bla" :> ReqBody '[JSON] Person :> Put '[JSON] Integer
+  :<|> "bla" :> ReqBody '[JSON] Int :> Put '[JSON] Integer
   :<|> "empty" :> Put '[] ()
 
 putApi :: Proxy PutApi
@@ -401,7 +402,10 @@ putApi = Proxy
 putSpec :: Spec
 putSpec = do
   describe "Servant.API.Put and .ReqBody" $ do
-    let server = return . age :<|> return . age :<|> return ()
+    let server = return . age
+            :<|> return . age
+            :<|> error "should not be called"
+            :<|> return ()
     with (return $ serve putApi server) $ do
       let put' x = Test.Hspec.Wai.request methodPut x [(hContentType
                                                         , "application/json;charset=utf-8")]
@@ -423,6 +427,9 @@ putSpec = do
 
       it "correctly rejects invalid request bodies with status 400" $ do
         put' "/" "some invalid body" `shouldRespondWith` 400
+
+      it "does not try other endpoints when request body is invalid" $ do
+        put' "bla" "5" `shouldRespondWith` 400
 
       it "returns 204 if the type is '()'" $ do
         put' "empty" "" `shouldRespondWith` ""{ matchStatus = 204 }

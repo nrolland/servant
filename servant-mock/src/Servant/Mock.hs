@@ -54,6 +54,7 @@ module Servant.Mock ( HasMock(..) ) where
 import           Control.Applicative
 #endif
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Either (EitherT(..))
 import           Data.ByteString.Lazy.Char8 (pack)
 import           Data.Proxy
 import           GHC.TypeLits
@@ -109,7 +110,9 @@ instance (KnownSymbol path, HasMock rest) => HasMock (path :> rest) where
 instance (KnownSymbol s, FromText a, HasMock rest) => HasMock (Capture s a :> rest) where
   mock _ = \_ -> mock (Proxy :: Proxy rest)
 
-instance (AllCTUnrender ctypes a, HasMock rest) => HasMock (ReqBody ctypes a :> rest) where
+instance (AllCTUnrender ctypes a, HasMock rest
+         , ServerT rest (EitherT ServantErr IO) ~ EitherT ServantErr IO b
+         ) => HasMock (ReqBody ctypes a :> rest) where
   mock _ = \_ -> mock (Proxy :: Proxy rest)
 
 instance HasMock rest => HasMock (RemoteHost :> rest) where

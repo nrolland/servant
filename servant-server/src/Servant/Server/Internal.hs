@@ -23,7 +23,7 @@ module Servant.Server.Internal
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative         ((<$>))
 #endif
-import           Control.Monad.Trans.Either  (EitherT)
+import           Control.Monad.Trans.Either  (EitherT, left)
 import qualified Data.ByteString             as B
 import qualified Data.ByteString.Lazy        as BL
 import qualified Data.Map                    as M
@@ -702,6 +702,7 @@ instance HasServer Raw where
 -- >   where postBook :: Book -> EitherT ServantErr IO Book
 -- >         postBook book = ...insert into your db...
 instance ( AllCTUnrender list a, HasServer sublayout
+         , ServerT sublayout (EitherT ServantErr IO) ~ EitherT ServantErr IO b
          ) => HasServer (ReqBody list a :> sublayout) where
 
   type ServerT (ReqBody list a :> sublayout) m =
@@ -719,7 +720,7 @@ instance ( AllCTUnrender list a, HasServer sublayout
              <$> lazyRequestBody request
       case mrqbody of
         Nothing -> return $ failWith $ UnsupportedMediaType
-        Just (Left e) -> return $ failWith $ InvalidBody e
+        Just (Left e) -> return . succeedWith $! left err400 { errBody = cs e }
         Just (Right v) -> feedTo subserver v
 
 -- | Make sure the incoming request starts with @"/path"@, strip it and
