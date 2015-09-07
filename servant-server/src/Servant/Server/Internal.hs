@@ -134,7 +134,7 @@ processMethodRouter :: forall a. ConvertibleStrings a B.ByteString
                     -> Maybe [(HeaderName, B.ByteString)]
                     -> Request -> RouteResult Response
 processMethodRouter handleA status method headers request = case handleA of
-  Nothing -> failWith UnsupportedMediaType
+  Nothing -> succeedWith UnsupportedMediaType
   Just (contentT, body) -> succeedWith $ responseLBS status hdrs bdy
     where
       bdy = if allowedMethodHead method request then "" else body
@@ -719,7 +719,7 @@ instance ( AllCTUnrender list a, HasServer sublayout
              <$> lazyRequestBody request
       case mrqbody of
         Nothing -> return $ failWith $ UnsupportedMediaType
-        Just (Left e) -> return $ failWith $ InvalidBody e
+        Just (Left e) -> return $ succeedWith $ InvalidBody e
         Just (Right v) -> feedTo subserver v
 
 -- | Make sure the incoming request starts with @"/path"@, strip it and
