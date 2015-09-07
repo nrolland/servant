@@ -769,7 +769,7 @@ errorRoutingBodyParseErrorSpec =
 type ErrorRouting405
   =    "content" :> Get '[JSON] Int
   :<|> "content" :> Post '[JSON] Int
-  :<|> ""        :> Get '[JSON] Int
+  :<|>  Get '[JSON] Int
 
 errorRouting405 :: Spec
 errorRouting405 =
@@ -778,8 +778,8 @@ errorRouting405 =
     go hs "get"  "/content" "1"
     go hs "post" "/content" ("2" { matchStatus = 201 })
     go hs "put"  "/content" 405
-    go hs "get"  "/"        "3"
-    go hs "put"  "/"        405
+    go hs "get"  ""        "3"
+    go hs "put"  ""        405
     go hs "get"  "/n/a"     404
     go hs "put"  "/n/a"     404
   where
