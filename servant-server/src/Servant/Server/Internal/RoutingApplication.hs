@@ -13,6 +13,7 @@ import           Data.Monoid                        (Monoid, mappend, mempty)
 import           Control.Monad.Trans.Either         (EitherT, runEitherT)
 import qualified Data.ByteString                    as B
 import qualified Data.ByteString.Char8              as BS
+import qualified Data.ByteString.Lazy.Char8         as BLC
 import qualified Data.ByteString.Lazy               as BL
 import           Data.IORef                         (newIORef, readIORef,
                                                      writeIORef)
@@ -59,6 +60,7 @@ data RouteMismatch =
   | HttpError Status (Maybe BL.ByteString)  -- ^ an even even more informative arbitrary HTTP response code error.
   deriving (Eq, Ord, Show)
 
+
 instance Monoid RouteMismatch where
   mempty = NotFound
   -- The following isn't great, since it picks @InvalidBody@ based on
@@ -67,6 +69,14 @@ instance Monoid RouteMismatch where
   -- "As one judge said to the other, 'Be just and if you can't be just, be
   -- arbitrary'" -- William Burroughs
   mappend = max
+
+routeMismatchToResponse :: RouteMismatch -> Response
+routeMismatchToResponse rm = case rm of
+  NotFound -> responseLBS status404 [] ""
+  WrongMethod -> responseLBS status405 [] ""
+  UnsupportedMediaType -> responseLBS status415 [] ""
+  InvalidBody s -> responseLBS status400 [] (BLC.pack s)
+  HttpError st msg -> responseLBS st [] (fromMaybe "" msg)
 
 data ReqBodyState = Uncalled
                   | Called !B.ByteString
