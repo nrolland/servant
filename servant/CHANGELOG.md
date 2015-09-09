@@ -3,6 +3,7 @@ HEAD
 
 * Add `HttpVersion`, `IsSecure`, `RemoteHost` and `Vault` combinators
 * Fix safeLink, so Header is not in fact required.
+* Add PlainText String MimeRender and MimeUnrender instances.
 
 0.4.2
 -----
