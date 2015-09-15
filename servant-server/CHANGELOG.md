@@ -3,6 +3,11 @@ HEAD
 
 * Support for the `HttpVersion`, `IsSecure`, `RemoteHost` and `Vault` combinators
 * Drop `EitherT` in favor of `ExceptT`
+* Remove `RouteMismatch`.
+* Redefined constructors of `RouteResult`.
+* Add `failFatallyWith`.
+* Make all (framework-generated) HTTP errors except 404 and 405 not try other
+  handlers.
 
 0.4.1
 -----
