@@ -51,7 +51,8 @@ import           Servant.API                 ((:<|>) (..), (:>), Capture,
                                               ReqBody, Vault)
 import           Servant.API.ContentTypes    (AcceptHeader (..),
                                               AllCTRender (..),
-                                              AllCTUnrender (..))
+                                              AllCTUnrender (..),
+                                              canHandleAcceptH)
 import           Servant.API.ResponseHeaders (GetHeaders, Headers, getHeaders,
                                               getResponse)
 import           Servant.Common.Text         (FromText, fromText)
@@ -148,11 +149,13 @@ methodRouter :: (AllCTRender ctypes a)
 methodRouter method proxy status action = LeafRouter route'
   where
     route' request respond
-      | pathIsEmpty request && allowedMethod method request = do
-          runAction action respond $ \ output -> do
-            let accH = fromMaybe ct_wildcard $ lookup hAccept $ requestHeaders request
-                handleA = handleAcceptH proxy (AcceptHeader accH) output
-            processMethodRouter handleA status method Nothing request
+      | pathIsEmpty request && allowedMethod method request =
+         let accH = fromMaybe ct_wildcard $ lookup hAccept $ requestHeaders request
+         in if canHandleAcceptH proxy (AcceptHeader accH)
+              then runAction action respond $ \ output -> do
+                 let handleA = handleAcceptH proxy (AcceptHeader accH) output
+                 processMethodRouter handleA status method Nothing request
+              else respond $ FailFatal err406
       | pathIsEmpty request && requestMethod request /= method =
           respond $ Fail err405
       | otherwise = respond $ Fail err404
