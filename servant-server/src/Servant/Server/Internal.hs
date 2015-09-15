@@ -646,7 +646,7 @@ instance (KnownSymbol sym, FromText a, HasServer sublayout)
 -- > server :: Server MyApi
 -- > server = getBooks
 -- >   where getBooks :: Bool -> ExceptT ServantErr IO [Book]
--- >         getBooks onlyPublished = ...return all books, or only the ones that are already published, depending on the argument...
+-- >         getBooks onlyPublished = ...return books...
 instance (KnownSymbol sym, HasServer sublayout)
       => HasServer (MatrixFlag sym :> sublayout) where
 
