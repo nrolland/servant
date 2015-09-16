@@ -141,7 +141,7 @@ processMethodRouter :: forall a. ConvertibleStrings a B.ByteString
                     -> Request -> RouteResult Response
 processMethodRouter handleA status method headers request = case handleA of
   Nothing -> FailFatal err406 -- this should not happen (checked before), so we make it fatal if it does
-  Just (contentT, body) -> Route $! responseLBS status hdrs bdy
+  Just (contentT, body) -> Route $ responseLBS status hdrs bdy
     where
       bdy = if allowedMethodHead method request then "" else body
       hdrs = (hContentType, cs contentT) : (fromMaybe [] headers)
@@ -738,7 +738,7 @@ instance ( AllCTUnrender list a, HasServer sublayout
           Nothing        -> return $ FailFatal err415
           Just (Left e)  -> return $ FailFatal err400 { errBody = cs e }
           Just (Right v) -> return $ Route v
-        
+
 -- | Make sure the incoming request starts with @"/path"@, strip it and
 -- pass the rest of the request path to @sublayout@.
 instance (KnownSymbol path, HasServer sublayout) => HasServer (path :> sublayout) where
