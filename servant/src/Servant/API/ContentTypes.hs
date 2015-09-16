@@ -57,6 +57,7 @@ module Servant.API.ContentTypes
     , AcceptHeader(..)
     , AllCTRender(..)
     , AllCTUnrender(..)
+    , AllMime(..)
     , AllMimeRender(..)
     , AllMimeUnrender(..)
     , FromFormUrlEncoded(..)
