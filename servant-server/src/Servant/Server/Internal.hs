@@ -140,7 +140,7 @@ processMethodRouter :: forall a. ConvertibleStrings a B.ByteString
                     -> Maybe [(HeaderName, B.ByteString)]
                     -> Request -> RouteResult Response
 processMethodRouter handleA status method headers request = case handleA of
-  Nothing -> FailFatal err406 -- this should not happen (checked before), so we make it fatal if it does
+  Nothing -> FailFatal err406 -- this should not happen (checked before)
   Just (contentT, body) -> Route $ responseLBS status hdrs bdy
     where
       bdy = if allowedMethodHead method request then "" else body
@@ -154,7 +154,7 @@ methodCheck method request
 acceptCheck :: (AllMime list) => Proxy list -> B.ByteString -> IO (RouteResult ())
 acceptCheck proxy accH
   | canHandleAcceptH proxy (AcceptHeader accH) = return $ Route ()
-  | otherwise                                  = return $ Fail err406
+  | otherwise                                  = return $ FailFatal err406
 
 methodRouter :: (AllCTRender ctypes a)
              => Method -> Proxy ctypes -> Status

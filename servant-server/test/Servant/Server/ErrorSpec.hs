@@ -7,11 +7,12 @@ module Servant.Server.ErrorSpec (spec) where
 
 import           Control.Monad.Trans.Except (throwE)
 import           Data.Aeson                 (encode)
-import qualified Data.ByteString.Lazy.Char8 as BCL
 import qualified Data.ByteString.Char8      as BC
+import qualified Data.ByteString.Lazy.Char8 as BCL
 import           Data.Proxy
 import           Network.HTTP.Types         (hAccept, hContentType, methodGet,
                                              methodPost, methodPut)
+import           Safe                       (readMay)
 import           Test.Hspec
 import           Test.Hspec.Wai
 
@@ -83,13 +84,13 @@ errorOrderSpec = describe "HTTP error order"
     request goodMethod goodUrl [badContentType, badAccept] badBody
       `shouldRespondWith` 415
 
-  it "has 406 as its fourth highest priority error" $ do
+  it "has 400 as its fourth highest priority error" $ do
     request goodMethod goodUrl [goodContentType, badAccept] badBody
-      `shouldRespondWith` 406
-
-  it "has 400 as its fifth highest priority error" $ do
-    request goodMethod goodUrl [goodContentType, goodAccept] badBody
       `shouldRespondWith` 400
+
+  it "has 406 as its fifth highest priority error" $ do
+    request goodMethod goodUrl [goodContentType, badAccept] goodBody
+      `shouldRespondWith` 406
 
   it "has handler-level errors as last priority" $ do
     request goodMethod goodUrl [goodContentType, goodAccept] goodBody
@@ -243,7 +244,7 @@ errorChoiceSpec = describe "Multiple handlers return errors"
     request methodPost "path3" [(hContentType, "application/json")] ""
       `shouldRespondWith` 400
     request methodPost "path4" [(hContentType, "text/plain;charset=utf-8"),
-                                (hAccept, "application/json")] ""
+                                (hAccept, "application/json")] "5"
       `shouldRespondWith` 406
 
 
@@ -252,7 +253,7 @@ errorChoiceSpec = describe "Multiple handlers return errors"
 -- * Instances {{{
 
 instance MimeUnrender PlainText Int where
-    mimeUnrender _ = Right . read . BCL.unpack
+    mimeUnrender _ x = maybe (Left "no parse") Right (readMay $ BCL.unpack x)
 
 instance MimeRender PlainText Int where
     mimeRender _ = BCL.pack . show
