@@ -130,7 +130,8 @@ data Delayed :: * -> * where
           -> (a -> b -> RouteResult c)
           -> Delayed c
 
-deriving instance Functor Delayed
+instance Functor Delayed where
+   fmap f (Delayed a b c g) = Delayed a b c ((fmap.fmap.fmap) f g)
 
 -- | Add a capture to the end of the capture block.
 addCapture :: Delayed (a -> b)
