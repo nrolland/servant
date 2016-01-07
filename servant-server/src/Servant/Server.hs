@@ -35,6 +35,20 @@ module Servant.Server
   , generalizeNat
   , tweakResponse
 
+  -- * Config
+  , ConfigEntry(..)
+  , Config(..)
+  , (.:)
+
+  -- * General Authentication
+  , AuthHandler(unAuthHandler)
+  , AuthReturnType
+  , mkAuthHandler
+
+  -- * Basic Authentication
+  , BasicAuthCheck(BasicAuthCheck, unBasicAuthCheck)
+  , BasicAuthResult(..)
+
     -- * Default error type
   , ServantErr(..)
     -- ** 3XX
@@ -105,7 +119,7 @@ import           Servant.Server.Internal.Enter
 serve :: HasServer layout => Proxy layout -> Server layout -> Application
 serve p server = toApplication (runRouter (route p d))
   where
-    d = Delayed r r r (\ _ _ -> Route server)
+    d = Delayed r r r r (\ _ _ _ -> Route server)
     r = return (Route ())
 
 

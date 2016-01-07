@@ -13,6 +13,8 @@
 
 module Servant.Server.Internal
   ( module Servant.Server.Internal
+  , module Servant.Server.Internal.Auth
+  , module Servant.Server.Internal.Config
   , module Servant.Server.Internal.Router
   , module Servant.Server.Internal.RoutingApplication
   , module Servant.Server.Internal.ServantErr
@@ -21,43 +23,61 @@ module Servant.Server.Internal
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative         ((<$>))
 #endif
-import           Control.Monad.Trans.Except (ExceptT)
-import qualified Data.ByteString            as B
-import qualified Data.ByteString.Lazy       as BL
-import qualified Data.Map                   as M
-import           Data.Maybe                 (fromMaybe, mapMaybe)
-import           Data.String                (fromString)
-import           Data.String.Conversions    (cs, (<>))
-import           Data.Text                  (Text)
+import           Control.Monad.Trans.Except                 (ExceptT, runExceptT)
+import qualified Data.ByteString                            as B
+import qualified Data.ByteString.Char8                      as BC8
+import qualified Data.ByteString.Lazy                       as BL
+import qualified Data.Map                                   as M
+import           Data.Maybe                                 (fromMaybe,
+                                                             mapMaybe)
+import           Data.String                                (fromString)
+import           Data.String.Conversions                    (cs, (<>))
+import           Data.Text                                  (Text)
 import           Data.Typeable
-import           GHC.TypeLits               (KnownNat, KnownSymbol, natVal,
-                                             symbolVal)
-import           Network.HTTP.Types         hiding (Header, ResponseHeaders)
-import           Network.Socket             (SockAddr)
-import           Network.Wai                (Application, Request, Response,
-                                             httpVersion, isSecure,
-                                             lazyRequestBody, pathInfo,
-                                             rawQueryString, remoteHost,
-                                             requestHeaders, requestMethod,
-                                             responseLBS, vault)
-import           Web.HttpApiData            (FromHttpApiData)
-import           Web.HttpApiData.Internal   (parseHeaderMaybe,
-                                             parseQueryParamMaybe,
-                                             parseUrlPieceMaybe)
+import           GHC.Exts                                   (Constraint)
+import           GHC.TypeLits                               (KnownNat,
+                                                             KnownSymbol,
+                                                             natVal, symbolVal)
+import           Network.HTTP.Types                         hiding (Header,
+                                                             ResponseHeaders)
+import           Network.Socket                             (SockAddr)
+import           Network.Wai                                (Application,
+                                                             Request, Response,
+                                                             httpVersion,
+                                                             isSecure,
+                                                             lazyRequestBody,
+                                                             pathInfo,
+                                                             rawQueryString,
+                                                             remoteHost,
+                                                             requestHeaders,
+                                                             requestMethod,
+                                                             responseLBS, vault)
+import           Web.HttpApiData                            (FromHttpApiData)
+import           Web.HttpApiData.Internal                   (parseHeaderMaybe, parseQueryParamMaybe,
+                                                             parseUrlPieceMaybe)
 
-import           Servant.API                 ((:<|>) (..), (:>), Capture,
-                                              Verb, ReflectMethod(reflectMethod),
-                                              IsSecure(..), Header,
-                                              QueryFlag, QueryParam, QueryParams,
-                                              Raw, RemoteHost, ReqBody, Vault)
-import           Servant.API.ContentTypes    (AcceptHeader (..),
-                                              AllCTRender (..),
-                                              AllCTUnrender (..),
-                                              AllMime,
-                                              canHandleAcceptH)
-import           Servant.API.ResponseHeaders (GetHeaders, Headers, getHeaders,
-                                              getResponse)
-
+import           Servant.API                                ((:<|>) (..), (:>),
+                                                             AuthProtect,
+                                                             BasicAuth, Capture,
+                                                             Header,
+                                                             IsSecure (..),
+                                                             QueryFlag,
+                                                             QueryParam,
+                                                             QueryParams, Raw, ReflectMethod (reflectMethod),
+                                                             RemoteHost,
+                                                             ReqBody, Vault,
+                                                             Verb)
+import           Servant.API.ContentTypes                   (AcceptHeader (..),
+                                                             AllCTRender (..),
+                                                             AllCTUnrender (..),
+                                                             AllMime,
+                                                             canHandleAcceptH)
+import           Servant.API.ResponseHeaders                (GetHeaders,
+                                                             Headers,
+                                                             getHeaders,
+                                                             getResponse)
+import           Servant.Server.Internal.Auth
+import           Servant.Server.Internal.Config
 import           Servant.Server.Internal.Router
 import           Servant.Server.Internal.RoutingApplication
 import           Servant.Server.Internal.ServantErr
@@ -443,6 +463,32 @@ instance HasServer api => HasServer (HttpVersion :> api) where
 
   route Proxy subserver = WithRequest $ \req ->
     route (Proxy :: Proxy api) (passToServer subserver $ httpVersion req)
+
+-- | Basic Authentication
+instance (KnownSymbol realm, HasServer api)
+    => HasServer (BasicAuth realm :> api) where
+  type ServerT (BasicAuth realm :> api) m = AuthReturnType (BasicAuth realm) -> ServerT api m
+  type HasConfig (BasicAuth realm :> api) c
+    = (HasConfigEntry c (BasicAuthCheck (AuthReturnType (BasicAuth realm))), HasConfig api c)
+
+  route Proxy cfg subserver = WithRequest $ \ request ->
+    route (Proxy :: Proxy api) cfg (subserver `addAuthCheck` authCheck request)
+    where
+       realm = BC8.pack $ symbolVal (Proxy :: Proxy realm)
+       baCfg = getConfigEntry (Proxy :: Proxy tag) cfg
+       authCheck req = runBasicAuth req realm baCfg
+
+-- | General Authentication
+instance HasServer api => HasServer (AuthProtect tag :> api) where
+  type ServerT (AuthProtect tag :> api) m = AuthReturnType (AuthProtect tag) -> ServerT api m
+  type HasCfg (AuthProtect tag :> api) c
+    = (HasConfigEntry c tag (AuthHandler Request (AuthReturnType (AuthProtect tag))), HasCfg api c)
+
+  route Proxy cfg subserver = WithRequest $ \ request ->
+    route (Proxy :: Proxy api) cfg (subserver `addAuthCheck` authCheck request)
+      where
+        authHandler = unAuthHandler (getConfigEntry (Proxy :: Proxy tag) cfg)
+        authCheck = fmap (either FailFatal Route) . runExceptT . authHandler
 
 pathIsEmpty :: Request -> Bool
 pathIsEmpty = go . pathInfo
