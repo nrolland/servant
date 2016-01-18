@@ -51,7 +51,7 @@ import           Web.HttpApiData.Internal   (parseHeaderMaybe,
                                              parseQueryParamMaybe,
                                              parseUrlPieceMaybe)
 
-import           Servant.API                 ((:<|>) (..), (:>), AsiuthProtect, BasicAuth, Capture,
+import           Servant.API                 ((:<|>) (..), (:>), AuthProtect, BasicAuth, Capture,
                                               Verb, ReflectMethod(reflectMethod),
                                               IsSecure(..), Header,
                                               QueryFlag, QueryParam, QueryParams,
@@ -65,6 +65,7 @@ import           Servant.API.ContentTypes    (AcceptHeader (..),
 import           Servant.API.ResponseHeaders (GetHeaders, Headers, getHeaders,
                                               getResponse)
 
+import           Servant.Server.Internal.Auth
 import           Servant.Server.Internal.Config
 import           Servant.Server.Internal.Router
 import           Servant.Server.Internal.RoutingApplication
@@ -476,23 +477,23 @@ instance (KnownSymbol realm, HasServer api)
   type HasConfig (BasicAuth realm :> api) c
     = (HasConfigEntry c (BasicAuthCheck (AuthReturnType (BasicAuth realm))), HasConfig api c)
 
-  route Proxy cfg subserver = WithRequest $ \ request ->
-    route (Proxy :: Proxy api) cfg (subserver `addAuthCheck` authCheck request)
+  route Proxy config subserver = WithRequest $ \ request ->
+    route (Proxy :: Proxy api) config (subserver `addAuthCheck` authCheck request)
     where
        realm = BC8.pack $ symbolVal (Proxy :: Proxy realm)
-       baCfg = getConfigEntry (Proxy :: Proxy tag) cfg
-       authCheck req = runBasicAuth req realm baCfg
+       basicAuthConfig = getConfigEntry config
+       authCheck req = runBasicAuth req realm basicAuthConfig
 
 -- | General Authentication
 instance HasServer api => HasServer (AuthProtect tag :> api) where
   type ServerT (AuthProtect tag :> api) m = AuthReturnType (AuthProtect tag) -> ServerT api m
-  type HasCfg (AuthProtect tag :> api) c
-    = (HasConfigEntry c tag (AuthHandler Request (AuthReturnType (AuthProtect tag))), HasCfg api c)
+  type HasConfig (AuthProtect tag :> api) c
+    = (HasConfigEntry c (AuthHandler Request (AuthReturnType (AuthProtect tag))), HasConfig api c)
 
-  route Proxy cfg subserver = WithRequest $ \ request ->
-    route (Proxy :: Proxy api) cfg (subserver `addAuthCheck` authCheck request)
+  route Proxy config subserver = WithRequest $ \ request ->
+    route (Proxy :: Proxy api) config (subserver `addAuthCheck` authCheck request)
       where
-        authHandler = unAuthHandler (getConfigEntry (Proxy :: Proxy tag) cfg)
+        authHandler = unAuthHandler (getConfigEntry config)
         authCheck = fmap (either FailFatal Route) . runExceptT . authHandler
 
 pathIsEmpty :: Request -> Bool

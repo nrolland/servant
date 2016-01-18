@@ -10,7 +10,6 @@ import           Control.Monad.Trans.Except (ExceptT, throwE)
 import           Data.Aeson
 import           Data.ByteString          (ByteString)
 import           Data.Monoid                ((<>))
-import           Data.IORef
 import           Data.Text                (Text)
 import           GHC.Generics
 import           Network.Wai

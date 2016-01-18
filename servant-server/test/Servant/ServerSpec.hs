@@ -34,7 +34,7 @@ import           Network.HTTP.Types         (Status (..), hAccept, hContentType,
 import           Network.Wai                (Application, Request, pathInfo,
                                              queryString, rawQueryString,
                                              responseBuilder, responseLBS)
-import           Network.Wai.Internal       (Response (ResponseBuilder))
+import           Network.Wai.Internal       (Response (ResponseBuilder), requestHeaders)
 import           Network.Wai.Test           (defaultRequest, request,
                                              runSession, simpleBody,
                                              simpleHeaders, simpleStatus)
@@ -47,14 +47,16 @@ import           Servant.API                ((:<|>) (..), (:>), AuthProtect, Bas
                                              QueryFlag, QueryParam, QueryParams,
                                              Raw, RemoteHost, ReqBody,
                                              StdMethod (..), Verb, addHeader)
-import           Servant.Server             (ServantErr (..), Server, err404,
-                                             serve, Config(EmptyConfig))
+import           Servant.Server             (ServantErr (..), Server, err401, err404,
+                                             serve, Config((:.), EmptyConfig))
 import           Test.Hspec                 (Spec, context, describe, it,
                                              shouldBe, shouldContain)
+import qualified Test.Hspec.Wai as THW
 import           Test.Hspec.Wai             (get, liftIO, matchHeaders,
                                              matchStatus, request,
                                              shouldRespondWith, with, (<:>))
 
+import           Servant.Server.Internal.Auth
 import           Servant.Server.Internal.RoutingApplication
                                             (toApplication, RouteResult(..))
 import           Servant.Server.Internal.Router
@@ -533,8 +535,8 @@ authServer = const (return jerry) :<|> const (return tweety)
 type instance AuthReturnType (BasicAuth "foo") = ()
 type instance AuthReturnType (AuthProtect "auth") = ()
 
-authConfig :: Config '[ ConfigEntry "basic" (BasicAuthCheck ())
-                      , ConfigEntry "auth"  (AuthHandler Request ())
+authConfig :: Config '[ BasicAuthCheck ()
+                      , AuthHandler Request ()
                       ]
 authConfig =
   let basicHandler = BasicAuthCheck $ (\usr pass ->
@@ -547,7 +549,7 @@ authConfig =
         then return ()
         else throwE err401
         )
-  in basicHandler .: mkAuthHandler authHandler .: EmptyConfig
+  in basicHandler :. mkAuthHandler authHandler :. EmptyConfig
 
 authSpec :: Spec
 authSpec = do
