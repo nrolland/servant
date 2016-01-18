@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
@@ -36,9 +37,8 @@ module Servant.Server
   , tweakResponse
 
   -- * Config
-  , ConfigEntry(..)
   , Config(..)
-  , (.:)
+  , NamedConfig(..)
 
   -- * General Authentication
   , AuthHandler(unAuthHandler)
@@ -110,14 +110,18 @@ import           Servant.Server.Internal.Enter
 -- > myApi :: Proxy MyApi
 -- > myApi = Proxy
 -- >
+-- > config :: Config '[]
+-- > config = EmptyConfig
+-- >
 -- > app :: Application
--- > app = serve myApi server
+-- > app = serve myApi config server
 -- >
 -- > main :: IO ()
 -- > main = Network.Wai.Handler.Warp.run 8080 app
 --
-serve :: HasServer layout => Proxy layout -> Server layout -> Application
-serve p server = toApplication (runRouter (route p d))
+serve :: (HasConfig layout a, HasServer layout)
+    => Proxy layout -> Config a -> Server layout -> Application
+serve p config server = toApplication (runRouter (route p config d))
   where
     d = Delayed r r r r (\ _ _ _ -> Route server)
     r = return (Route ())

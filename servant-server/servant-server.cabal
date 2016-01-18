@@ -98,10 +98,13 @@ test-suite spec
   hs-source-dirs: test
   main-is: Spec.hs
   other-modules:
+      Servant.Server.ErrorSpec
+      Servant.Server.Internal.ConfigSpec
       Servant.Server.Internal.EnterSpec
       Servant.ServerSpec
+      Servant.Server.UsingConfigSpec
+      Servant.Server.UsingConfigSpec.TestCombinators
       Servant.Utils.StaticFilesSpec
-      Servant.Server.ErrorSpec
   build-depends:
       base == 4.*
     , aeson
@@ -119,6 +122,7 @@ test-suite spec
     , servant
     , servant-server
     , string-conversions
+    , should-not-typecheck == 2.*
     , temporary
     , text
     , transformers

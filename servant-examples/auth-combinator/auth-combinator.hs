@@ -7,10 +7,11 @@
 {-# LANGUAGE TypeOperators       #-}
 
 import           Control.Monad.Trans.Except (ExceptT, throwE)
-import           Data.Aeson                 hiding ((.:))
-import           Data.ByteString            (ByteString)
+import           Data.Aeson
+import           Data.ByteString          (ByteString)
 import           Data.Monoid                ((<>))
-import           Data.Text                  (Text)
+import           Data.IORef
+import           Data.Text                (Text)
 import           GHC.Generics
 import           Network.Wai
 import           Network.Wai.Handler.Warp
@@ -96,7 +97,6 @@ $ curl -XGET localhost:8080/private -H "Cookie: good password"
 
 $ curl -XGET localhost:8080/private -H "Cookie: bad password"
 Invalid Cookie
->>>>>>> 683e100... Update auth-combinator to use new general AuthProtected
 
 $ curl -XGET localhost:8080/public
 [{"somedata":"this is a public piece of data"}]
