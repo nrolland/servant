@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -18,7 +18,24 @@ import           GHC.Generics
 import           Test.Hspec
 
 import           Servant.API
+import           Servant.API.Internal.Test.ComprehensiveAPI
 import           Servant.Docs.Internal
+
+-- * comprehensive api
+
+-- This declaration simply checks that all instances are in place.
+_ = docs comprehensiveAPI
+
+instance ToParam (QueryParam "foo" Int) where
+  toParam = error "unused"
+instance ToParam (QueryParams "foo" Int) where
+  toParam = error "unused"
+instance ToParam (QueryFlag "foo") where
+  toParam = error "unused"
+instance ToCapture (Capture "foo" Int) where
+  toCapture = error "unused"
+
+-- * specs
 
 spec :: Spec
 spec = describe "Servant.Docs" $ do
@@ -73,9 +90,9 @@ spec = describe "Servant.Docs" $ do
     it "mentions status codes" $ do
       md `shouldContain` "Status code 200"
 
-    it "mentions methods" $ do
-      md `shouldContain` "POST"
-      md `shouldContain` "GET"
+    it "has methods as section headers" $ do
+      md `shouldContain` "## POST"
+      md `shouldContain` "## GET"
 
     it "mentions headers" $ do
       md `shouldContain` "- This endpoint is sensitive to the value of the **X-Test** HTTP header."

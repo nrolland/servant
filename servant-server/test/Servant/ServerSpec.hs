@@ -46,6 +46,7 @@ import           Servant.API                ((:<|>) (..), (:>), Capture, Delete,
                                              QueryFlag, QueryParam, QueryParams,
                                              Raw, RemoteHost, ReqBody,
                                              StdMethod (..), Verb, addHeader)
+import           Servant.API.Internal.Test.ComprehensiveAPI
 import           Servant.Server             (ServantErr (..), Server, err404,
                                              serve, Config(EmptyConfig))
 import           Test.Hspec                 (Spec, context, describe, it,
@@ -60,6 +61,10 @@ import           Servant.Server.Internal.Router
                                             (tweakResponse, runRouter,
                                              Router, Router'(LeafRouter))
 
+-- * comprehensive api test
+
+-- This declaration simply checks that all instances are in place.
+_ = serve comprehensiveAPI
 
 -- * Specs
 
